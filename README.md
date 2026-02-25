@@ -47,7 +47,7 @@ You can adjust the following parameters within `Demo.m` to fit your computationa
 | :--- | :--- | :--- |
 | `rf` | List of receptive field models to fit (e.g., `dog`, `bounded_gaussian`). | `{'angle_distance_gaussian', ...}` |
 | `bps` | Number of boundary points included (1 to 120). | `1` |
-| `r` | Number of fitting repetitions per model for stability. | `3` |
+| `r` | Number of fitting repetitions per model for stability. | `5` |
 | `nworkers` | Number of CPU cores for parallel processing. | `4` |
 | `fps` | Frame rate of tracking data for firing rate visualization. | `30` |
 
