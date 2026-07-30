@@ -1,63 +1,114 @@
-# Computational Structure of Egocentric Boundary Cell Responses in Retrosplenial Cortex
+# Nearest-boundary CV/GLM demo
 
-This repository contains the MATLAB implementation and demo data for the computational modeling of **Egocentric Boundary Cells (EBCs)** in the mouse **Retrosplenial Cortex (RSC)**. The demo is designed to be lightweight and to reproduce **Figure 1** from the manuscript by running a single script.
+This folder is a self-contained Windows MATLAB demo for the example neuron used in Figure 2. It runs the current nearest-boundary modeling
+workflow from raw tracking and spike timestamps through:
 
+1. blocked cross-validated fitting;
+2. per-fold and full-fit best selection;
+3. Monte Carlo validation;
+4. component figure export; and
+5. MATLAB assembly of `figure2_N36_nearest_only`.
 
-## Quick start (reproduce Figure 1)
+The demo does not require the parent ModelOnGoing checkout, SCC shell scripts,
+`SGE_TASK_ID`, Python, or environment variables.
 
-1. Open MATLAB.
-2. Set your MATLAB current folder to the repository root.
-3. Run:
+## Windows quick start
+
+1. Copy the complete `code and demo` folder to any Windows location.
+2. Open MATLAB.
+3. Open `Demo.m`.
+4. Select the run mode near the top of the file:
 
 ```matlab
-   run('Demo.m')
+mode = "paper";  % complete paper configuration
+% mode = "quick";  % shorter workflow demonstration
 ```
-> **Note:** The demo is intended to run on a typical desktop/laptop. Full-scale fitting across many cells/sessions may require cluster computing.
 
----
+5. Run `Demo.m`.
 
-## Data Format
-The demo includes sample data files with the following structures:
+All paths are resolved from the location of `Demo.m`, so MATLAB does not need
+to start in this folder.
 
-### 1. `spike_timestamps.txt`
-* **Content**: A single-column list of timestamps representing each action potential (spike).
-* **Units**: Microseconds ($\mu s$).
+## Run modes
 
-### 2. `tracking_data.txt`
-* **Content**: Video tracking data with one row per video frame.
-* **Columns**: `[timestamp, x_position, y_position, head_direction]`
-    * **Timestamp**: Microseconds ($\mu s$).
-    * **X / Y Position**: Animal's coordinates in centimeters (cm).
-    * **Head Direction**: Degrees (increasing counterclockwise from the positive x-axis).
+| Mode | Runs | CV folds | Monte Carlo draws | Optimization |
+| --- | ---: | ---: | ---: | --- |
+| `paper` | 5 | 5 | 2000 | Production defaults |
+| `quick` | 2 | 3 | 200 | Reduced GA/hybrid limits |
 
----
+Both modes fit all seven RF shape families with paired `glm_free` and
+`glm_pos` calibration. The default figures use `glm_pos`, matching Figure 2.
+Quick mode demonstrates the complete workflow but is not intended to
+reproduce the final paper values.
 
 ## Requirements
-* **MATLAB** (Recommended: R2021a or later)
-* **Optimization Toolbox**: Required for fmincon.
-* **Global Optimization Toolbox**: Required for GA.
-* **Parallel Computing Toolbox**: Required for parallelizing model fitting across multiple repetitions (`nworkers`).
 
----
+- Windows MATLAB, R2021a or newer recommended.
+- Global Optimization Toolbox (`ga`).
+- Optimization Toolbox (`fmincon`).
+- Parallel Computing Toolbox is optional. When available, the demo opens or
+  reuses a Windows `local` pool. Otherwise it runs serially.
+- Statistics and Machine Learning Toolbox is optional. If `glmfit` is
+  unavailable or fails, the included logistic-calibration fallback is used.
 
-## Configuration
-You can adjust the following parameters within `Demo.m` to fit your computational resources or research needs:
+## Inputs
 
-| Parameter | Description | Default |
-| :--- | :--- | :--- |
-| `rf` | List of receptive field models to fit (e.g., `dog`, `bounded_gaussian`). | `{'angle_distance_gaussian', ...}` |
-| `bps` | Number of boundary points included (1 to 120). | `1` |
-| `r` | Number of fitting repetitions per model for stability. | `5` |
-| `nworkers` | Number of CPU cores for parallel processing. | `4` |
-| `fps` | Frame rate of tracking data for firing rate visualization. | `30` |
+`Demo Data` contains exactly one example neuron:
 
----
+- `tracking_data/<name>.txt`: timestamp, x position, y position, head direction.
+- `spike_timestamps/<name>.txt`: one spike timestamp per row.
+- `boundaries.CSV`: four static segment boundaries.
+
+Positions are in centimeters and head direction is in degrees.
 
 ## Outputs
-The script automatically organizes results into the following directory structure:
 
-* **`/Demo results/`**: Contains `.mat` files for each repetition and the final `results_best.mat` (selected via log-likelihood optimization).
-* **`/Demo figures/`**: Contains generated visualizations.
-    * **`/{bps}pts/`**: Subfolders sorted by the number of boundary points used.
-    * **`..._rf.png`**: The final receptive field visualizations.
+Each mode has an isolated output directory:
 
+```text
+Demo Results/
+  paper/ or quick/
+    demo_prepared_data.mat
+    demo_run_manifest.mat
+    <rf>_1closest_cv_glm_<free|pos>_<run>.mat
+    <rf>_1closest_cv_glm_<free|pos>_best.mat
+    <rf>_1closest_cv_glm_<free|pos>_filled.mat
+
+Demo Figures/
+  paper/ or quick/
+    figure2_N165_nearest_only.pdf
+    figure2_N165_nearest_only.png
+    directional_compass.pdf/png
+    figures_basic/
+    1pts Pos/<rf>/
+```
+
+PDF files preserve vector text and scatter content; PNG previews are exported
+at 300 dpi.
+
+## Reusing completed stages
+
+The stage switches are near the top of `Demo.m`. For example, after fitting
+has completed, set:
+
+```matlab
+config.stages.prepareData = false;
+config.stages.fit = false;
+```
+
+The demo then loads `demo_prepared_data.mat` and reuses the configured numeric
+run files. Best selection reads only the run IDs declared by the active mode,
+so old or unrelated MAT files are not mixed into the result.
+
+## Statistical behavior
+
+- CV test folds are contiguous time blocks.
+- RF shape and logistic calibration are fitted only on training frames.
+- Fold winners are chosen by training log-likelihood.
+- Reported CV likelihood is the sum of the selected held-out fold scores.
+- Full-fit parameters, AIC, and BIC follow the run with the largest full-data
+  log-likelihood.
+- Monte Carlo null data use each fold's training firing rate and are scored
+  with fixed out-of-fold model probabilities.
+- RF heatmaps display `alpha * g(theta)` without offset or sigmoid. Offset is
+  reported through the zero-input baseline in each individual RF subtitle.
