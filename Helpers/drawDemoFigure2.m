@@ -11,13 +11,15 @@ fig = figure('Visible', 'off', 'Color', 'white', ...
 drawTopPanel(fig, demoData, demoData.fired, ...
     'A', 'Recorded firing', 4, true, pageWidth, pageHeight);
 drawTopPanel(fig, demoData, naiveFired, ...
-    'B', 'Naive baseline', 87, false, pageWidth, pageHeight);
+    'B', 'Naïve mean-rate baseline', 87, false, pageWidth, pageHeight);
 
 rows = [0, 0, 1, 1, 2, 2, 3];
 columns = [0, 1, 0, 1, 0, 1, 0];
+cvScores = arrayfun(@(model) model.entry.cvLogLikelihoodPerFrame, models);
+[~, bestModelIndex] = max(cvScores);
 for i = 1:numel(models)
     drawModelBlock(fig, demoData, models(i), rows(i), columns(i), ...
-        i == 1, pageWidth, pageHeight);
+        i == bestModelIndex, i == 1, pageWidth, pageHeight);
 end
 drawCompassBlock(fig, pageWidth, pageHeight);
 
@@ -49,7 +51,7 @@ end
 end
 
 function drawModelBlock(fig, demoData, model, row, column, highlight, ...
-    pageWidth, pageHeight)
+    showAxes, pageWidth, pageHeight)
 if column == 0
     blockX = 4;
 else
@@ -61,7 +63,7 @@ blockHeight = 44;
 
 if highlight
     axes(fig, 'Units', 'normalized', ...
-        'Position', topRect(blockX, blockY, blockWidth, blockHeight, ...
+        'Position', topRect(blockX-1, blockY, blockWidth+1, blockHeight, ...
         pageWidth, pageHeight), ...
         'Color', [0.918, 0.957, 0.984], ...
         'XColor', [0.216, 0.459, 0.729], ...
@@ -75,7 +77,7 @@ addHeading(fig, model.label, model.title, blockX, blockY + 2.5, ...
 
 plotSide = 24.1;
 plotY = blockY + 13;
-if highlight
+if showAxes
     rfX = blockX + 10;
 else
     rfX = blockX + 4.5;
@@ -106,7 +108,7 @@ quiver(axRf, 0, 0, 0, 10, 0, 'Color', 'black', ...
     'LineWidth', 0.8, 'MaxHeadSize', 1.5);
 hold(axRf, 'off');
 
-if highlight
+if showAxes
     set(axRf, 'XTick', [-30, 0, 30], 'YTick', [-30, 0, 30]);
     xlabel(axRf, 'Left (-)       cm       Right (+)', ...
         'FontName', 'Arial', 'FontSize', 7);
@@ -138,16 +140,39 @@ set(axSpatial, 'XTick', [], 'YTick', [], 'Position', spatialPosition);
 end
 
 function drawCompassBlock(fig, pageWidth, pageHeight)
-blockX = 87;
-blockY = 190;
-blockWidth = 79;
-addCenteredText(fig, 'Spike colour denotes head direction', ...
-    blockX, blockY + 1.8, blockWidth, pageWidth, pageHeight, ...
-    9.5, [0.145, 0.145, 0.145], 'bold');
+% Match the original Figure 2 geometry; one data unit is one millimeter.
+centerX = 87 + 79 / 2;
+centerY = 190 + 21.3;
+innerRadius = 5.8;
+outerRadius = 10.8;
 ax = axes(fig, 'Units', 'normalized', ...
-    'Position', topRect(blockX + 19, blockY + 10, 41, 34, ...
+    'DefaultTextColor', [0.145, 0.145, 0.145], ...
+    'Position', topRect(centerX - 20, centerY - 20, 40, 40, ...
     pageWidth, pageHeight));
-drawHeadDirectionCompass(ax, false, 200);
+axis(ax, 'equal');
+axis(ax, [-20, 20, -20, 20]);
+axis(ax, 'off');
+hold(ax, 'on');
+for degree = 0:359
+    angles = [degree, degree + 1, degree + 1, degree];
+    radii = [outerRadius, outerRadius, innerRadius, innerRadius];
+    patch(ax, radii .* cosd(angles), radii .* sind(angles), ...
+        hsv2rgb([degree / 360, 1, 1]), 'EdgeColor', 'none');
+end
+text(ax, 0, 16.1, 'Spike color denotes head direction', ...
+    'HorizontalAlignment', 'center', 'VerticalAlignment', 'baseline', ...
+    'FontName', 'Arial', 'FontWeight', 'bold', 'FontSize', 8.8);
+text(ax, 0, -1, 'HD', ...
+    'HorizontalAlignment', 'center', 'VerticalAlignment', 'baseline', ...
+    'FontName', 'Arial', 'FontWeight', 'bold', 'FontSize', 8);
+labelPositions = [15.3, -1; 0, 12.5; -16.2, -1; 0, -14.4];
+labels = {'0°', '90°', '180°', '270°'};
+for i = 1:numel(labels)
+    text(ax, labelPositions(i, 1), labelPositions(i, 2), labels{i}, ...
+        'HorizontalAlignment', 'center', 'VerticalAlignment', 'baseline', ...
+        'FontName', 'Arial', 'FontSize', 8);
+end
+hold(ax, 'off');
 end
 
 function plotSpatialMap(ax, demoData, fired)

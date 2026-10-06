@@ -87,7 +87,8 @@ if config.stages.monteCarlo
 end
 
 %% 6. Component figures and assembled Figure 2
-% Individual RF maps display alpha*g(theta) without offset or sigmoid.
+% Individual RF maps display alpha*f_Theta(b) without offset or sigmoid.
+% The code variable offset corresponds to beta in the manuscript.
 % The logistic zero-input baseline is reported in each RF subtitle.
 % Figure 2 uses glm_pos results and the manually adjusted A-I layout.
 if config.stages.drawFigures

@@ -1,5 +1,6 @@
 function applyRfLogitContributionStyle(fig, RF, fullFitOffset)
 %APPLYRFLOGITCONTRIBUTIONSTYLE Apply the shared RF contribution styling.
+% fullFitOffset corresponds to beta in the manuscript.
 
 if any(~isfinite(RF(:)))
     error('RF contains non-finite values.');
@@ -15,7 +16,7 @@ colormap(fig, colorMap);
 caxis(ax, colorLimits);
 
 cb = colorbar(ax);
-cb.Label.String = 'Contribution to firing log-odds (\alpha g_\theta)';
+cb.Label.String = 'Contribution to firing log-odds (\alpha f_\Theta({\bf b}))';
 cb.Label.Interpreter = 'tex';
 if isConstant
     cb.Ticks = RF(1);
